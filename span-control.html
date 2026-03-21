@@ -429,7 +429,23 @@ function logout() {
   sessionStorage.removeItem('auth');
   document.getElementById('loginScreen').style.display = 'flex';
 }
+const PASSWORD = 'CarOwnership2026';
 
+function checkLogin() {
+  const val = document.getElementById('loginPass').value;
+  if (val === PASSWORD) {
+    document.getElementById('loginScreen').style.display = 'none';
+    sessionStorage.setItem('auth', '1');
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginPass').value = '';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('auth');
+  document.getElementById('loginScreen').style.display = 'flex';
+}
 // Init
 (async()=>{
   if (!sessionStorage.getItem('auth')) {
@@ -441,6 +457,3 @@ function logout() {
   populateFilters();
   refreshAll();
 })();
-</script>
-</body>
-</html>
