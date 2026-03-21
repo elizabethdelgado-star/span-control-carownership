@@ -71,7 +71,21 @@ tr:hover td{background:#f8fbff}
 .action-btn{background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:5px;font-size:13px}
 .action-btn:hover{background:#f0f0f0}
 .loading{text-align:center;padding:30px;color:#636e72;font-size:13px}
+  </style>
+<style>
+#loginScreen{display:none;position:fixed;inset:0;background:#f5f6fa;z-index:999;align-items:center;justify-content:center}
 </style>
+</head>
+<body>
+<div id="loginScreen" style="display:flex;position:fixed;inset:0;background:#f5f6fa;z-index:999;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:16px;padding:40px;width:90%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.1);text-align:center">
+    <h2 style="font-size:18px;font-weight:600;margin-bottom:4px">Span de Control</h2>
+    <p style="font-size:13px;color:#636e72;margin-bottom:24px">Operaciones — Car Ownership</p>
+    <input id="loginPass" type="password" placeholder="Contraseña" style="width:100%;padding:11px 14px;border-radius:8px;border:1px solid #dfe6e9;font-size:14px;margin-bottom:12px;text-align:center" onkeydown="if(event.key==='Enter')checkLogin()">
+    <div id="loginError" style="color:#e17055;font-size:12px;margin-bottom:10px;display:none">Contraseña incorrecta</div>
+    <button style="width:100%;padding:12px;background:#0984e3;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer" onclick="checkLogin()">Entrar</button>
+  </div>
+</div>
 </head>
 <body>
 
