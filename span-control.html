@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Span of Control - Car Ownership</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f5f6fa;color:#2d3436}
+#loginScreen{position:fixed;inset:0;background:#f5f6fa;z-index:999;display:flex;align-items:center;justify-content:center}
+header{background:#2d3436;color:white;padding:14px 24px;display:flex;align-items:center;gap:12px}
+header h1{font-size:17px;font-weight:600}
+header span{font-size:12px;opacity:.6}
+.tabs{display:flex;background:white;border-bottom:2px solid #eee;padding:0 20px;overflow-x:auto}
+.tab{padding:13px 18px;cursor:pointer;font-size:13px;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;color:#636e72;transition:all .2s}
+.tab.active{border-color:#0984e3;color:#0984e3;font-weight:600}
+.tab:hover{color:#0984e3}
+.content{padding:20px;max-width:1300px;margin:0 auto}
+.section{display:none}.section.active{display:block}
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+.btn-primary{background:#0984e3;color:white}.btn-primary:hover{background:#0773c5}
+.btn-success{background:#00b894;color:white}.btn-success:hover{background:#009d7e}
+.btn-ghost{background:#f0f0f0;color:#636e72}.btn-ghost:hover{background:#e0e0e0}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:white;border-radius:10px;padding:16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.stat-card .num{font-size:28px;font-weight:700;color:#0984e3}
+.stat-card .lbl{font-size:11px;color:#636e72;margin-top:4px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.filters select{padding:8px 11px;border-radius:8px;border:1px solid #dfe6e9;font-size:13px;background:white}
+.filters input{padding:8px 11px;border-radius:8px;border:1px solid #dfe6e9;font-size:13px;flex:1;min-width:180px}
+.table-wrap{background:white;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:auto;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f8f9fa;padding:10px 12px;text-align:left;font-weight:600;color:#636e72;border-bottom:1px solid #eee;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fbff}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-director{background:#6c5ce7;color:white}
+.badge-opsmanager{background:#e84393;color:white}
+.badge-manager{background:#0984e3;color:white}
+.badge-coordinator{background:#00b894;color:white}
+.badge-supervisor{background:#fdcb6e;color:#2d3436}
+.badge-base{background:#dfe6e9;color:#636e72}
+.chip{display:inline-block;background:#f0f7ff;color:#0984e3;border-radius:5px;padding:2px 7px;font-size:11px;margin:1px}
+.email-cell{color:#636e72;font-size:11px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:12px;padding:24px;width:90%;max-width:500px;box-shadow:0 8px 30px rgba(0,0,0,.15);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:12px;font-weight:600;color:#636e72}
+.form-group input,.form-group select{padding:9px 11px;border-radius:7px;border:1px solid #dfe6e9;font-size:13px}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:#0984e3}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.span-bar{height:8px;border-radius:4px;display:inline-block}
+.org-wrap{overflow:auto}
+.org-level{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0}
+.org-node{border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;min-width:140px;max-width:180px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.org-node .n{font-weight:700;font-size:12px}
+.org-node .r{font-size:10px;opacity:.8;margin-top:2px}
+.org-node .d{font-size:10px;opacity:.6}
+.level-director .org-node{background:#6c5ce7;color:white}
+.level-manager .org-node{background:#0984e3;color:white}
+.level-coordinator .org-node{background:#00b894;color:white}
+.level-supervisor .org-node{background:#ffeaa7;color:#2d3436}
+.level-base .org-node{background:#f0f0f0;color:#2d3436}
+.level-label{text-align:center;font-size:10px;font-weight:700;color:#b2bec3;text-transform:uppercase;letter-spacing:1px;margin:8px 0 2px}
+.org-connector{text-align:center;color:#dfe6e9;font-size:20px}
+.empty{text-align:center;padding:40px;color:#b2bec3;font-size:14px}
+.action-btn{background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:5px;font-size:13px}
+.action-btn:hover{background:#f0f0f0}
+.upload-box{border:2px dashed #b2bec3;border-radius:12px;padding:30px;text-align:center;background:white;cursor:pointer;transition:all .2s;margin-bottom:16px}
+.upload-box:hover{border-color:#0984e3;background:#f0f7ff}
+.note{background:#fff8e1;border-left:4px solid #fdcb6e;padding:14px 16px;border-radius:6px;font-size:13px;color:#636e72;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div style="background:white;border-radius:16px;padding:40px;width:90%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.1);text-align:center">
+    <svg width="44" height="44" fill="none" stroke="#0984e3" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:14px"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a6 6 0 0112 0v2"/></svg>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:6px">Span of Control</h2>
+    <p style="font-size:13px;color:#636e72;margin-bottom:28px">Car Ownership</p>
+    <input id="loginPass" type="password" placeholder="Ingresa la contraseña" style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid #dfe6e9;font-size:15px;margin-bottom:10px;text-align:center;letter-spacing:3px;outline:none" onkeydown="if(event.key==='Enter')checkLogin()" onfocus="this.style.borderColor='#0984e3'" onblur="this.style.borderColor='#dfe6e9'">
+    <div id="loginError" style="color:#e17055;font-size:12px;margin-bottom:10px;display:none">❌ Contraseña incorrecta</div>
+    <button onclick="checkLogin()" style="width:100%;padding:13px;background:#0984e3;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer" onmouseover="this.style.background='#0773c5'" onmouseout="this.style.background='#0984e3'">Entrar</button>
+  </div>
+</div>
+
+<header>
+  <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a6 6 0 0112 0v2"/></svg>
+  <div>    <h1>Span of Control — Car Ownership</h1><span id="headerSub">Cargando...</span></div>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button class="btn btn-ghost" onclick="logout()" style="font-size:12px">Cerrar sesión</button>
+    <button class="btn btn-primary" onclick="openModal()">+ Agregar</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('upload',this)">📤 Importar</div>
+  <div class="tab" onclick="showTab('dashboard',this)">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('tabla',this)">👥 Empleados</div>
+  <div class="tab" onclick="showTab('span',this)">📐 Span de Control</div>
+  <div class="tab" onclick="showTab('org',this)">🌳 Organigrama</div>
+</div>
+
+<div class="content">
+
+  <div id="tab-upload" class="section active">
+    <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+      <svg width="40" height="40" fill="none" stroke="#b2bec3" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:10px"><path d="M3 16v2a2 2 0 002 2h14a2 2 0 002-2v-2M12 3v13M7 8l5-5 5 5"/></svg>
+      <strong style="display:block;font-size:15px;margin-bottom:4px">Subir archivo CSV</strong>
+      <p style="font-size:13px;color:#636e72">Haz clic para seleccionar</p>
+      <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="handleFile(event)">
+    </div>
+    <div class="note">
+      <b style="color:#e17055">Columnas requeridas en tu CSV:</b><br><br>
+      <span class="chip">Employee_ID</span>
+      <span class="chip">Full_Legal_Name</span>
+      <span class="chip">Work_Email</span>
+      <span class="chip">businessTitle</span>
+      <span class="chip">Department</span>
+      <span class="chip">location</span>
+      <span class="chip">manager_email</span>
+      <span class="chip">manager_name</span>
+      <span class="chip">Vertical</span>
+    </div>
+    <div style="text-align:center">
+      <button class="btn btn-ghost" onclick="clearData()">🗑️ Limpiar datos</button>
+    </div>
+  </div>
+
+  <div id="tab-dashboard" class="section">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;flex-wrap:wrap">
+      <div class="table-wrap"><table id="verticalTable"><thead><tr><th>Vertical</th><th>#</th><th>Depts</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="levelTable"><thead><tr><th>Nivel</th><th>#</th><th>%</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="locationTable"><thead><tr><th>Location</th><th>#</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="tab-tabla" class="section">
+    <div class="filters">
+      <select id="fV" onchange="renderTabla()"><option value="">Todas las verticales</option></select>
+      <select id="fD" onchange="renderTabla()"><option value="">Todos los departamentos</option></select>
+      <select id="fN" onchange="renderTabla()"><option value="">Todos los niveles</option></select>
+      <select id="fL" onchange="renderTabla()"><option value="">Todas las locations</option></select>
+      <input id="fQ" placeholder="🔍 Buscar nombre, ID o puesto..." oninput="renderTabla()">
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Puesto</th><th>Nivel</th><th>Departamento</th><th>Vertical</th><th>Location</th><th>Manager</th><th></th></tr></thead>
+      <tbody id="tablaBody"></tbody></table>
+    </div>
+  </div>
+
+  <div id="tab-span" class="section">
+    <div class="filters">
+      <select id="sV" onchange="renderSpan()"><option value="">Todas las verticales</option></select>
+      <select id="sD" onchange="renderSpan()"><option value="">Todos los departamentos</option></select>
+      <select id="sL" onchange="renderSpan()"><option value="">Todas las locations</option></select>
+    </div>
+    <div id="spanContent"></div>
+  </div>
+
+  <div id="tab-org" class="section">
+    <div class="filters">
+      <select id="oV" onchange="renderOrg()"><option value="">Selecciona una vertical...</option></select>
+      <select id="oD" onchange="renderOrg()"><option value="">Todos los departamentos</option></select>
+      <select id="oL" onchange="renderOrg()"><option value="">Todas las locations</option></select>
+    </div>
+    <div id="orgContent" style="overflow:auto;padding:10px"></div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width:400px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 id="detailTitle" style="margin:0"></h3>
+      <button onclick="document.getElementById('detailModal').classList.remove('open')" style="background:none;border:none;font-size:20px;cursor:pointer;color:#636e72">✕</button>
+    </div>
+    <div id="detailList" style="max-height:400px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Agregar empleado</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Employee ID *</label><input id="fId" placeholder="Ej. 000056"></div>
+      <div class="form-group"><label>Nombre completo *</label><input id="fNombre" placeholder="Ej. Ana García"></div>
+      <div class="form-group full"><label>Email</label><input id="fEmail" placeholder="ana.garcia@kavak.com" type="email"></div>
+      <div class="form-group full"><label>Puesto *</label><input id="fPuesto" placeholder="Ej. Operations Supervisor" oninput="autoLevel()"></div>
+      <div class="form-group"><label>Vertical *</label>
+        <select id="fVertical" onchange="updateDeptOptions()">
+          <option value="">Seleccionar...</option>
+          <option>Central</option><option>Producción</option><option>After Sales</option>
+          <option>Logistic</option><option>Logistic Shop</option><option>Hub Operations</option>
+          <option>Inspección</option><option>Otra</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Departamento *</label><select id="fDepto"><option value="">Seleccionar vertical primero</option></select></div>
+      <div class="form-group"><label>Location</label><input id="fLocation" placeholder="Ej. CMX-San Angel"></div>
+      <div class="form-group"><label>Nivel jerárquico</label>
+        <select id="fNivel">
+          <option value="director">Director</option>
+          <option value="manager">Manager / Team Lead</option>
+          <option value="coordinator">Coordinador</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="base" selected>Operativo / Base</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>Manager (email)</label><input id="fReporta" placeholder="manager@kavak.com"></div>
+      <div class="form-group full"><label>Nombre del Manager</label><input id="fManagerName" placeholder="Ej. Daniel Florez"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="saveEmployee()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var PASSWORD = 'CarOwnership2026';
+var DEPTS = {
+  'Central':['Car Ownership Excellence','Car Ownership Management','Car Ownership Tech','Certifications_','Concierge','Control Tower_','Other Revenues_'],
+  'Producción':['Content_','Detailing_','Mechanical Production','Spare Parts Supply_'],
+  'After Sales':['After Sales Ops - Warranties_','Mechanical After Sales'],
+  'Logistic':['Logistics_'],'Logistic Shop':['Logistics Shop_'],
+  'Hub Operations':['Hub Operations','Hub Operations Delivery','Hub Operations Production'],
+  'Inspección':['Mechanical Certification'],'Otra':[]
+};
+var LEVELS = {
+  director:{label:'Director',order:1,badge:'badge-director'},
+  opsmanager:{label:'Ops Manager',order:2,badge:'badge-opsmanager'},
+  manager:{label:'Team Lead',order:3,badge:'badge-manager'},
+  coordinator:{label:'Coordinator / Group Leader',order:4,badge:'badge-coordinator'},
+  supervisor:{label:'Supervisor',order:5,badge:'badge-supervisor'},
+  base:{label:'Operativo',order:6,badge:'badge-base'}
+};
+var employees = [], editingId = null;
+
+function checkLogin() {
+  var val = document.getElementById('loginPass').value;
+  if (val === PASSWORD) {
+    document.getElementById('loginScreen').style.display = 'none';
+    sessionStorage.setItem('auth','1');
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+  }
+}
+function logout() {
+  sessionStorage.removeItem('auth');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+async function saveData() { try { await window.storage.set('employees', JSON.stringify(employees)); } catch(e) {} }
+async function loadData() { try { var r = await window.storage.get('employees'); if (r && r.value) employees = JSON.parse(r.value); } catch(e) { employees = []; } }
+
+function detectLevel(role) {
+  var r = (role||'').toLowerCase();
+  if (r.includes('director') || r.includes('head') || r.includes('vp') || r.includes('chief')) return 'director';
+  if (r.includes('manager') || r.includes('gerente') || r.includes('lead') || r.includes('jefe')) return 'manager';
+  if (r.includes('coordinator') || r.includes('coordinador')) return 'coordinator';
+  if (r.includes('supervisor')) return 'supervisor';
+  return 'base';
+}
+function autoLevel() { document.getElementById('fNivel').value = detectLevel(document.getElementById('fPuesto').value); }
+function updateDeptOptions() {
+  var v = document.getElementById('fVertical').value;
+  var sel = document.getElementById('fDepto');
+  var depts = DEPTS[v] || [];
+  sel.innerHTML = depts.length ? depts.map(function(d){return '<option>'+d+'</option>';}).join('') : '<option value="">Escribe el departamento</option>';
+}
+
+function handleFile(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) { parseCSV(ev.target.result); };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(text) {
+  var lines = text.trim().split('\n');
+  var raw = lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'').toLowerCase();});
+  function col(k) { return raw.findIndex(function(h){return h.includes(k);}); }
+  var iId=col('employee_id')!==-1?col('employee_id'):col('id');
+  var iName=col('full_legal_name')!==-1?col('full_legal_name'):col('name');
+  var iEmail=col('work_email')!==-1?col('work_email'):col('email');
+  var iPuesto=col('businesstitle')!==-1?col('businesstitle'):col('puesto')!==-1?col('puesto'):col('title');
+  var iDepto=col('department')!==-1?col('department'):col('departamento');
+  var iLoc=col('location');
+  var iMgrEmail=col('manager_email')!==-1?col('manager_email'):col('manager');
+  var iMgrName=col('manager_name');
+  var iVertical=col('vertical');
+
+  var imported = lines.slice(1).filter(function(l){return l.trim();}).map(function(line){
+    var cols = line.split(',').map(function(c){return c.trim().replace(/^"|"$/g,'');});
+    return {
+      id: Date.now().toString()+Math.random(),
+      empId: cols[iId]||'',
+      nombre: iName>=0?(cols[iName]||''):'',
+      email: iEmail>=0?(cols[iEmail]||''):'',
+      puesto: iPuesto>=0?(cols[iPuesto]||''):'',
+      depto: iDepto>=0?(cols[iDepto]||''):'',
+      location: iLoc>=0?(cols[iLoc]||''):'',
+      managerEmail: iMgrEmail>=0?(cols[iMgrEmail]||''):'',
+      managerName: iMgrName>=0?(cols[iMgrName]||''):'',
+      vertical: iVertical>=0?(cols[iVertical]||''):'',
+      nivel: detectLevel(iPuesto>=0?(cols[iPuesto]||''):'')
+    };
+  }).filter(function(e){return e.empId||e.nombre;});
+
+  employees = employees.concat(imported);
+  saveData(); populateFilters(); refreshAll();
+  showTabDirect('dashboard');
+  alert('✅ ' + imported.length + ' empleados importados correctamente.');
+}
+
+async function clearData() {
+  if (!confirm('¿Eliminar todos los datos?')) return;
+  employees = [];
+  await saveData(); populateFilters(); refreshAll();
+}
+
+function openModal(id) {
+  editingId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'Editar empleado' : 'Agregar empleado';
+  ['fId','fNombre','fEmail','fPuesto','fLocation','fReporta','fManagerName'].forEach(function(i){document.getElementById(i).value='';});
+  document.getElementById('fVertical').value='';
+  document.getElementById('fNivel').value='base';
+  document.getElementById('fDepto').innerHTML='<option value="">Seleccionar vertical primero</option>';
+  if (id) {
+    var e = employees.find(function(x){return x.id===id;});
+    if (e) {
+      document.getElementById('fId').value = e.empId;
+      document.getElementById('fNombre').value = e.nombre;
+      document.getElementById('fEmail').value = e.email;
+      document.getElementById('fPuesto').value = e.puesto;
+      document.getElementById('fVertical').value = e.vertical;
+      updateDeptOptions();
+      setTimeout(function(){document.getElementById('fDepto').value=e.depto;},10);
+      document.getElementById('fNivel').value = e.nivel;
+      document.getElementById('fLocation').value = e.location;
+      document.getElementById('fReporta').value = e.managerEmail;
+      document.getElementById('fManagerName').value = e.managerName;
+    }
+  }
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+async function saveEmployee() {
+  var empId = document.getElementById('fId').value.trim();
+  var nombre = document.getElementById('fNombre').value.trim();
+  var email = document.getElementById('fEmail').value.trim();
+  var puesto = document.getElementById('fPuesto').value.trim();
+  var vertical = document.getElementById('fVertical').value;
+  var depto = document.getElementById('fDepto').value;
+  var nivel = document.getElementById('fNivel').value;
+  var location = document.getElementById('fLocation').value.trim();
+  var managerEmail = document.getElementById('fReporta').value.trim();
+  var managerName = document.getElementById('fManagerName').value.trim();
+  if (!empId||!puesto||!vertical||!depto) { alert('Por favor llena los campos obligatorios (*)'); return; }
+  if (editingId) {
+    var i = employees.findIndex(function(e){return e.id===editingId;});
+    if (i>=0) employees[i]={id:editingId,empId,nombre,email,puesto,vertical,depto,nivel,location,managerEmail,managerName};
+  } else {
+    employees.push({id:Date.now().toString(),empId,nombre,email,puesto,vertical,depto,nivel,location,managerEmail,managerName});
+  }
+  await saveData(); closeModal(); populateFilters(); refreshAll();
+}
+
+async function deleteEmployee(id) {
+  if (!confirm('¿Eliminar este empleado?')) return;
+  employees = employees.filter(function(e){return e.id!==id;});
+  await saveData(); populateFilters(); refreshAll();
+}
+
+function populateFilters() {
+  var vs=[...new Set(employees.map(function(e){return e.vertical;}))].sort();
+  var ds=[...new Set(employees.map(function(e){return e.depto;}))].sort();
+  var ls=[...new Set(employees.map(function(e){return e.location||'';}).filter(Boolean))].sort();
+  ['fV','sV','oV'].forEach(function(id){var s=document.getElementById(id);if(!s)return;var v=s.value;s.innerHTML='<option value="">Todas las verticales</option>'+vs.map(function(x){return'<option>'+x+'</option>';}).join('');s.value=v;});
+  ['fD','sD','oD'].forEach(function(id){var s=document.getElementById(id);if(!s)return;var v=s.value;s.innerHTML='<option value="">Todos los departamentos</option>'+ds.map(function(x){return'<option>'+x+'</option>';}).join('');s.value=v;});
+  ['fL','sL','oL'].forEach(function(id){var s=document.getElementById(id);if(!s)return;var v=s.value;s.innerHTML='<option value="">Todas las locations</option>'+ls.map(function(x){return'<option>'+x+'</option>';}).join('');s.value=v;});
+  var fn=document.getElementById('fN');if(fn)fn.innerHTML='<option value="">Todos los niveles</option>'+Object.entries(LEVELS).map(function(e){return'<option value="'+e[0]+'">'+e[1].label+'</option>';}).join('');
+  document.getElementById('headerSub').textContent=employees.length+' empleado'+(employees.length!==1?'s':'')+' registrado'+(employees.length!==1?'s':'');
+}
+
+function getFiltered(vId,dId,lId) {
+  var v=document.getElementById(vId).value, d=document.getElementById(dId).value, l=lId?document.getElementById(lId).value:'';
+  return employees.filter(function(e){return(!v||e.vertical===v)&&(!d||e.depto===d)&&(!l||e.location===l);});
+}
+
+function renderDashboard() {
+  var total=employees.length;
+  if (!total){document.getElementById('statsGrid').innerHTML='<div class="empty" style="grid-column:1/-1">Importa un CSV para comenzar.</div>';return;}
+  var vs=[...new Set(employees.map(function(e){return e.vertical;}))];
+  var ds=[...new Set(employees.map(function(e){return e.depto;}))];
+  var ls=[...new Set(employees.map(function(e){return e.location||'';}))].filter(Boolean);
+  document.getElementById('statsGrid').innerHTML=
+    '<div class="stat-card"><div class="num">'+total+'</div><div class="lbl">Total empleados</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" onclick="showDetail(\'verticales\')" title="Ver verticales"><div class="num" style="color:#6c5ce7">'+vs.length+'</div><div class="lbl">Verticales 👁</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" onclick="showDetail(\'departamentos\')" title="Ver departamentos"><div class="num" style="color:#0984e3">'+ds.length+'</div><div class="lbl">Departamentos 👁</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" onclick="showDetail(\'locations\')" title="Ver locations"><div class="num" style="color:#00b894">'+ls.length+'</div><div class="lbl">Locations 👁</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" onclick="filterByLevel(\'supervisor\')" title="Ver supervisores"><div class="num" style="color:#e67e22">'+employees.filter(function(e){return e.nivel==='supervisor';}).length+'</div><div class="lbl">Supervisores 👁</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" onclick="filterByLevel(\'base\')" title="Ver operativos"><div class="num" style="color:#636e72">'+employees.filter(function(e){return e.nivel==='base';}).length+'</div><div class="lbl">Operativos 👁</div></div>';
+  // Location table - use data attributes to avoid quote issues
+  var locTbody = document.querySelector('#locationTable tbody');
+  locTbody.innerHTML = ls.map(function(l){
+    var cnt = employees.filter(function(e){return e.location===l;}).length;
+    return '<tr style="cursor:pointer" data-location="'+encodeURIComponent(l)+'"><td><b style="color:#0984e3">📍 '+l+'</b></td><td>'+cnt+' <span style="font-size:10px;color:#b2bec3">→ org</span></td></tr>';
+  }).join('');
+  locTbody.querySelectorAll('tr').forEach(function(row){
+    row.addEventListener('click', function(){
+      openOrgByLocation(decodeURIComponent(this.getAttribute('data-location')));
+    });
+  });
+
+  // Vertical table - use data attributes
+  var verTbody = document.querySelector('#verticalTable tbody');
+  verTbody.innerHTML = vs.map(function(v){
+    var cnt = employees.filter(function(e){return e.vertical===v;}).length;
+    var depts = [...new Set(employees.filter(function(e){return e.vertical===v;}).map(function(e){return e.depto;}))];
+    return '<tr><td style="cursor:pointer" data-vertical="'+encodeURIComponent(v)+'"><b>'+v+'</b></td><td>'+cnt+'</td><td><span style="color:#0984e3;text-decoration:underline;cursor:pointer" data-showdept="'+encodeURIComponent(v)+'">'+depts.length+'</span></td></tr>';
+  }).join('');
+  verTbody.querySelectorAll('td[data-vertical]').forEach(function(td){
+    td.addEventListener('click', function(){
+      filterTabla('vertical', decodeURIComponent(this.getAttribute('data-vertical')));
+    });
+  });
+  verTbody.querySelectorAll('span[data-showdept]').forEach(function(span){
+    span.addEventListener('click', function(e){
+      e.stopPropagation();
+      showDeptDetail(decodeURIComponent(this.getAttribute('data-showdept')));
+    });
+  });
+}
+
+function renderTabla() {
+  var list=getFiltered('fV','fD','fL').filter(function(e){
+    var n=document.getElementById('fN').value, q=document.getElementById('fQ').value.toLowerCase();
+    return(!n||e.nivel===n)&&(!q||e.empId.toLowerCase().includes(q)||e.nombre.toLowerCase().includes(q)||e.puesto.toLowerCase().includes(q));
+  });
+  var body=document.getElementById('tablaBody');
+  if (!list.length){body.innerHTML='<tr><td colspan="10" class="empty">Sin resultados</td></tr>';return;}
+  body.innerHTML=list.map(function(e){return'<tr><td><b>'+e.empId+'</b></td><td>'+e.nombre+'</td><td class="email-cell">'+e.email+'</td><td>'+e.puesto+'</td><td><span class="badge '+LEVELS[e.nivel].badge+'">'+LEVELS[e.nivel].label+'</span></td><td>'+e.depto+'</td><td>'+e.vertical+'</td><td>'+e.location+'</td><td class="email-cell">'+(e.managerName||e.managerEmail||'—')+'</td><td><button class="action-btn" onclick="openModal(\''+e.id+'\')">✏️</button><button class="action-btn" onclick="deleteEmployee(\''+e.id+'\')">🗑️</button></td></tr>';}).join('');
+}
+
+function renderSpan() {
+  var list=getFiltered('sV','sD','sL');
+  var container=document.getElementById('spanContent');
+  if (!list.length){container.innerHTML='<div class="empty">Sin datos para mostrar</div>';return;}
+  var leaders=list.filter(function(e){return['supervisor','coordinator','manager','director'].includes(e.nivel);});
+  var rows=leaders.map(function(l){return Object.assign({},l,{reports:list.filter(function(e){return e.managerEmail===l.email;})});}).filter(function(r){return r.reports.length>0;}).sort(function(a,b){return b.reports.length-a.reports.length;});
+  if (!rows.length){container.innerHTML='<div class="empty">No hay relaciones de reporte definidas.</div>';return;}
+  var max=Math.max.apply(null,rows.map(function(r){return r.reports.length;}));
+  container.innerHTML='<div class="table-wrap"><table><thead><tr><th>ID</th><th>Nombre</th><th>Puesto</th><th>Nivel</th><th>Location</th><th>Reportes directos</th><th>Span</th></tr></thead><tbody>'+
+    rows.map(function(r){return'<tr><td><b>'+r.empId+'</b></td><td>'+r.nombre+'</td><td>'+r.puesto+'</td><td><span class="badge '+LEVELS[r.nivel].badge+'">'+LEVELS[r.nivel].label+'</span></td><td>'+r.location+'</td><td>'+r.reports.map(function(p){return'<span class="chip" title="'+p.empId+'">'+(p.nombre||p.empId)+'</span>';}).join('')+'</td><td style="white-space:nowrap"><span class="span-bar" style="width:'+Math.max((r.reports.length/max)*80,8)+'px;background:'+(r.reports.length>6?'#e17055':r.reports.length>=3?'#00b894':'#74b9ff')+'"></span><b style="margin-left:6px">'+r.reports.length+'</b></td></tr>';}).join('')+
+    '</tbody></table></div>';
+}
+
+function renderOrg() {
+  var selV = document.getElementById('oV').value;
+  var selD = document.getElementById('oD').value;
+  var c = document.getElementById('orgContent');
+  if (!selV) { c.innerHTML = '<div class="empty">Selecciona una vertical para ver el organigrama</div>'; return; }
+
+  var selL = document.getElementById('oL').value;
+  var list = employees.filter(function(e){ return e.vertical === selV && (!selD || e.depto === selD) && (!selL || e.location === selL); });
+  if (!list.length) { c.innerHTML = '<div class="empty">Sin datos para mostrar</div>'; return; }
+
+  var collapsed = {};
+  var colors = { director:'#6c5ce7', opsmanager:'#e84393', manager:'#0984e3', coordinator:'#00b894', supervisor:'#f39c12', base:'#636e72' };
+
+  function getReports(emp) {
+    return employees.filter(function(e){ return e.managerEmail === emp.email && (list.some(function(l){ return l.empId === e.empId; }) || true); })
+      .filter(function(e){ return !selD || e.depto === selD || e.managerEmail === emp.email; });
+  }
+
+  function renderNode(emp, depth) {
+    var allReports = employees.filter(function(e){ return e.managerEmail === emp.email; })
+      .filter(function(e){ return !selD || list.some(function(l){ return l.empId === e.empId; }); });
+
+    if (!allReports.length && depth === 0) return '';
+
+    var color = colors[emp.nivel] || '#636e72';
+    var nodeId = 'node-' + emp.empId.replace(/[^a-z0-9]/gi,'');
+    var childId = 'children-' + emp.empId.replace(/[^a-z0-9]/gi,'');
+
+    // Group reports by puesto
+    var grouped = {};
+    allReports.forEach(function(r){
+      var key = r.puesto || 'Sin puesto';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(r);
+    });
+
+    var html = '<div style="display:inline-flex;flex-direction:column;align-items:center;margin:0 6px">';
+    // Manager card
+    html += '<div id="'+nodeId+'" onclick="toggleNode(\''+emp.empId+'\')" style="background:'+color+';color:white;border-radius:10px;padding:10px 14px;min-width:160px;max-width:200px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.15);cursor:pointer;user-select:none">';
+    html += '<div style="font-weight:700;font-size:12px;line-height:1.3">'+emp.nombre+'</div>';
+    html += '<div style="font-size:10px;opacity:.85;margin-top:3px">'+emp.puesto+'</div>';
+    html += '<div style="font-size:10px;opacity:.7;margin-top:1px">'+emp.empId+'</div>';
+    if (emp.location) html += '<div style="font-size:10px;opacity:.7;margin-top:1px">📍 '+emp.location+'</div>';
+    if (allReports.length) html += '<div id="'+nodeId+'-btn" style="margin-top:5px;font-size:10px;background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px">▼ '+allReports.length+' reportes</div>';
+    html += '</div>';
+
+    // Children grouped by puesto
+    html += '<div id="'+childId+'" style="display:none;flex-direction:column;align-items:center">';
+    html += '<div style="width:2px;height:16px;background:#dfe6e9"></div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px">';
+
+    Object.keys(grouped).forEach(function(puesto){
+      var group = grouped[puesto];
+      var subId = 'grp-'+(emp.empId+puesto).replace(/[^a-z0-9]/gi,'');
+      var subBtnId = subId+'-btn';
+      var firstColor = colors[group[0].nivel] || '#636e72';
+
+      html += '<div style="display:flex;flex-direction:column;align-items:center;margin:0 4px">';
+      html += '<div style="width:2px;height:12px;background:#dfe6e9"></div>';
+      // Puesto group card
+      html += '<div onclick="toggleGroup(\''+subId+'\')" style="background:'+firstColor+';color:white;border-radius:10px;padding:8px 12px;min-width:140px;max-width:180px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.1);cursor:pointer;user-select:none">';
+      html += '<div style="font-weight:700;font-size:11px">'+puesto+'</div>';
+      html += '<div id="'+subBtnId+'" style="margin-top:4px;font-size:10px;background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px">▼ '+group.length+' personas</div>';
+      html += '</div>';
+      // People list
+      html += '<div id="'+subId+'" style="display:none;flex-direction:column;gap:4px;margin-top:6px;max-width:180px">';
+      group.forEach(function(p){
+        html += '<div style="background:white;border:1px solid #dfe6e9;border-radius:7px;padding:6px 10px;font-size:11px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05)">';
+        html += '<div style="font-weight:600;color:#2d3436">'+p.nombre+'</div>';
+        html += '<div style="color:#636e72;font-size:10px">'+p.empId+'</div>';
+        if (p.location) html += '<div style="color:#636e72;font-size:10px">📍 '+p.location+'</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+      html += '</div>';
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  window.toggleNode = function(empId) {
+    var childId = 'children-' + empId.replace(/[^a-z0-9]/gi,'');
+    var btnId = 'node-' + empId.replace(/[^a-z0-9]/gi,'') + '-btn';
+    var childEl = document.getElementById(childId);
+    var btnEl = document.getElementById(btnId);
+    if (!childEl) return;
+    var isHidden = childEl.style.display === 'none';
+    childEl.style.display = isHidden ? 'flex' : 'none';
+    var emp = employees.find(function(e){ return e.empId === empId; });
+    if (emp && btnEl) {
+      var cnt = employees.filter(function(e){ return e.managerEmail === emp.email; }).length;
+      btnEl.textContent = isHidden ? '▲ ocultar' : '▼ ' + cnt + ' reportes';
+    }
+  };
+
+  window.toggleGroup = function(subId) {
+    var el = document.getElementById(subId);
+    var btnEl = document.getElementById(subId+'-btn');
+    if (!el) return;
+    var isHidden = el.style.display === 'none';
+    el.style.display = isHidden ? 'flex' : 'none';
+    if (btnEl) {
+      var match = btnEl.textContent.match(/\d+/);
+      var cnt = match ? match[0] : '';
+      btnEl.textContent = isHidden ? '▲ ocultar' : '▼ ' + cnt + ' personas';
+    }
+  };
+
+  // Find roots
+  var listEmails = list.map(function(e){ return e.email; });
+  var roots = list.filter(function(e){
+    return !e.managerEmail || !listEmails.includes(e.managerEmail);
+  }).sort(function(a,b){
+    return (LEVELS[a.nivel]||{order:9}).order - (LEVELS[b.nivel]||{order:9}).order;
+  });
+
+  var html = '<div style="padding:10px">';
+  html += '<p style="font-size:12px;color:#636e72;margin-bottom:16px;text-align:center">💡 Haz clic en cualquier tarjeta para expandir o colapsar sus reportes</p>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:30px;justify-content:center;overflow-x:auto">';
+  roots.forEach(function(root){
+    html += '<div style="background:#f8f9fa;border-radius:12px;padding:20px;box-shadow:0 1px 6px rgba(0,0,0,.08);overflow-x:auto">';
+    html += renderNode(root, 0);
+    html += '</div>';
+  });
+  html += '</div></div>';
+  c.innerHTML = html;
+}
+
+function refreshAll(){renderDashboard();renderTabla();renderSpan();renderOrg();}
+function showTab(name,el){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+}
+function showTabDirect(name){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  var idx=['upload','dashboard','tabla','span','org'].indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+}
+
+(function init(){
+  if (!sessionStorage.getItem('auth')) {
+    document.getElementById('loginScreen').style.display = 'flex';
+  } else {
+    document.getElementById('loginScreen').style.display = 'none';
+  }
+  loadData().then(function(){populateFilters();refreshAll();});
+})();
+</script>
+</body>
+</html>
