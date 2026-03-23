@@ -268,7 +268,7 @@ async function loadData() { try { var r = await window.storage.get('employees');
 function detectLevel(role) {
   var r = (role||'').toLowerCase();
   if (r.includes('director') || r.includes('head') || r.includes('vp') || r.includes('chief')) return 'director';
-  if (r.includes('manager') || r.includes('gerente') || r.includes('lead') || r.includes('jefe')) return 'manager';
+ if (r.includes('manager') || r.includes('gerente') || r.includes('lead') || r.includes('jefe')) return 'manager';
   if (r.includes('coordinator') || r.includes('coordinador')) return 'coordinator';
   if (r.includes('supervisor')) return 'supervisor';
   return 'base';
