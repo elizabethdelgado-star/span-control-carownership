@@ -403,29 +403,42 @@ function getFiltered(vId,dId,lId) {
 }
 
 function renderDashboard() {
-  var total=employees.length;
+  var total = employees.length;
   if (!total){document.getElementById('statsGrid').innerHTML='<div class="empty" style="grid-column:1/-1">Importa un CSV para comenzar.</div>';return;}
-  var vs=[...new Set(employees.map(function(e){return e.vertical;}))];
-  var ds=[...new Set(employees.map(function(e){return e.depto;}))];
-  var ls=[...new Set(employees.map(function(e){return e.location||'';}))].filter(Boolean);
+  var vs=[...new Set(employees.map(function(e){return e.vertical;}))].sort();
+  var ds=[...new Set(employees.map(function(e){return e.depto;}))].sort();
+  var ls=[...new Set(employees.map(function(e){return e.location||'';}).filter(Boolean))].sort();
+
   document.getElementById('statsGrid').innerHTML=
     '<div class="stat-card"><div class="num">'+total+'</div><div class="lbl">Total empleados</div></div>'+
-    '<div class="stat-card" style="cursor:pointer" onclick="showDetail(\'verticales\')" title="Ver verticales"><div class="num" style="color:#6c5ce7">'+vs.length+'</div><div class="lbl">Verticales 👁</div></div>'+
-    '<div class="stat-card" style="cursor:pointer" onclick="showDetail(\'departamentos\')" title="Ver departamentos"><div class="num" style="color:#0984e3">'+ds.length+'</div><div class="lbl">Departamentos 👁</div></div>'+
-    '<div class="stat-card" style="cursor:pointer" onclick="showDetail(\'locations\')" title="Ver locations"><div class="num" style="color:#00b894">'+ls.length+'</div><div class="lbl">Locations 👁</div></div>'+
-    '<div class="stat-card" style="cursor:pointer" onclick="filterByLevel(\'supervisor\')" title="Ver supervisores"><div class="num" style="color:#e67e22">'+employees.filter(function(e){return e.nivel==='supervisor';}).length+'</div><div class="lbl">Supervisores 👁</div></div>'+
-    '<div class="stat-card" style="cursor:pointer" onclick="filterByLevel(\'base\')" title="Ver operativos"><div class="num" style="color:#636e72">'+employees.filter(function(e){return e.nivel==='base';}).length+'</div><div class="lbl">Operativos 👁</div></div>';
-  // Location table - use data attributes to avoid quote issues
-  var locTbody = document.querySelector('#locationTable tbody');
-  locTbody.innerHTML = ls.map(function(l){
-    var cnt = employees.filter(function(e){return e.location===l;}).length;
-    return '<tr style="cursor:pointer" data-location="'+encodeURIComponent(l)+'"><td><b style="color:#0984e3">📍 '+l+'</b></td><td>'+cnt+' <span style="font-size:10px;color:#b2bec3">→ org</span></td></tr>';
-  }).join('');
-  locTbody.querySelectorAll('tr').forEach(function(row){
-    row.addEventListener('click', function(){
-      openOrgByLocation(decodeURIComponent(this.getAttribute('data-location')));
-    });
-  });
+    '<div class="stat-card" style="cursor:pointer" id="sc-verticales"><div class="num" style="color:#6c5ce7">'+vs.length+'</div><div class="lbl">Verticales 👁</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" id="sc-departamentos"><div class="num" style="color:#0984e3">'+ds.length+'</div><div class="lbl">Departamentos 👁</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" id="sc-locations"><div class="num" style="color:#00b894">'+ls.length+'</div><div class="lbl">Locations 👁</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" id="sc-supervisor"><div class="num" style="color:#e67e22">'+employees.filter(function(e){return e.nivel==='supervisor';}).length+'</div><div class="lbl">Supervisores 👁</div></div>'+
+    '<div class="stat-card" style="cursor:pointer" id="sc-base"><div class="num" style="color:#636e72">'+employees.filter(function(e){return e.nivel==='base';}).length+'</div><div class="lbl">Operativos 👁</div></div>';
+
+  document.getElementById('sc-verticales').onclick=function(){showDetail('verticales');};
+  document.getElementById('sc-departamentos').onclick=function(){showDetail('departamentos');};
+  document.getElementById('sc-locations').onclick=function(){showDetail('locations');};
+  document.getElementById('sc-supervisor').onclick=function(){filterByLevel('supervisor');};
+  document.getElementById('sc-base').onclick=function(){filterByLevel('base');};
+
+  var verTbody=document.querySelector('#verticalTable tbody');
+  verTbody.innerHTML=vs.map(function(v){var cnt=employees.filter(function(e){return e.vertical===v;}).length;var dc=[...new Set(employees.filter(function(e){return e.vertical===v;}).map(function(e){return e.depto;}))].length;return'<tr><td style="cursor:pointer"><b>'+v+'</b></td><td>'+cnt+'</td><td><span style="color:#0984e3;text-decoration:underline;cursor:pointer">'+dc+'</span></td></tr>';}).join('');
+  var verRows=verTbody.querySelectorAll('tr');
+  vs.forEach(function(v,i){verRows[i].querySelector('td:first-child').onclick=function(){filterTabla('vertical',v);};verRows[i].querySelector('span').onclick=function(e){e.stopPropagation();showDeptDetail(v);};});
+
+  var levelEntries=Object.entries(LEVELS);
+  var lvlTbody=document.querySelector('#levelTable tbody');
+  lvlTbody.innerHTML=levelEntries.map(function(entry){var k=entry[0],lv=entry[1];var cnt=employees.filter(function(e){return e.nivel===k;}).length;return'<tr style="cursor:pointer"><td><span class="badge '+lv.badge+'">'+lv.label+'</span></td><td>'+cnt+'</td><td>'+(total?((cnt/total)*100).toFixed(0):0)+'%</td></tr>';}).join('');
+  var lvlRows=lvlTbody.querySelectorAll('tr');
+  levelEntries.forEach(function(entry,i){lvlRows[i].onclick=function(){filterByLevel(entry[0]);};});
+
+  var locTbody=document.querySelector('#locationTable tbody');
+  locTbody.innerHTML=ls.map(function(l){var cnt=employees.filter(function(e){return e.location===l;}).length;return'<tr style="cursor:pointer"><td><b style="color:#0984e3">📍 '+l+'</b></td><td>'+cnt+' <span style="font-size:10px;color:#b2bec3">→ org</span></td></tr>';}).join('');
+  var locRows=locTbody.querySelectorAll('tr');
+  ls.forEach(function(l,i){locRows[i].onclick=function(){openOrgByLocation(l);};});
+}
 
   // Vertical table - use data attributes
   var verTbody = document.querySelector('#verticalTable tbody');
